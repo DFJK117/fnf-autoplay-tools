@@ -1,0 +1,40 @@
+============================================================
+全自动无人值守 —— 引擎级方案（真正能用的那种）
+============================================================
+
+【原理 —— 一句话】
+不再从外部扫游戏内存（那是死路：hxcpp 对象在 GC 堆里会移动，
+扫到的"增长 double"其实全是 nvoglv64.dll 显卡计时器，跟歌曲无关）。
+改成直接打开引擎自带的 cpuControlled —— 也就是游戏设置里的 Bot Play。
+引擎每一帧自己遍历音符、自己判定、自己加分，误差强制为 0（全 Sick），
+天然支持任意 K（4K/7K/13K 都行），不读内存、不发键盘、不依赖窗口焦点。
+
+【已完成的东西】
+脚本：AutoFullCombo.lua
+位置：I:/NF-1.2.1h2/export/release/windows/bin/mods/VSImpostorLegacy_NVE/scripts/
+      （这是引擎全局脚本目录：mods/<任意已启用mod>/scripts/*.lua 会被自动加载）
+
+【怎么用】
+1. 正常开游戏、进任意一首歌
+2. 进曲即自动开打，全程无需任何操作、无需外部程序
+3. F9 = 临时关闭（恢复手动）；再按 F9 = 重新开启
+
+【默认行为（脚本顶部两个开关可改）】
+- AUTO_ON      = true  → 进曲自动开
+- HIDE_BOT_TEXT = true  → 隐藏"BOTPLAY"字样（画面看着像真人在打）
+
+【为什么这次不是摆设 —— 已核实的事实】
+- PlayState.hx:271/272  cpuControlled / cpuControlled_opponent 是 public 字段
+- PlayState.hx:2662     引擎自己遍历音符并 goodNoteHit（全自动判定核心）
+- PlayState.hx:3864     bot 模式下 noteDiff 强制=0 → 全 Sick
+- ReflectionFunctions.hx:43  setProperty() 可写 PlayState 字段
+- FunkinLua.hx:422/427  setVar/getVar 存在（脚本存状态用）
+- FlxKey.hx:95          F9 = 120（切换键码，已核对）
+- PlayState.hx:578      全局脚本从各 mod 的 scripts/ 目录加载
+
+【已知边界（说实话）】
+- 这是"引擎自动打"，判定全 Sick，分数会满，但本质是 Bot Play：
+  部分引擎/排行榜会把 bot 模式的成绩标记为不计入。要"像真人一样有
+  手抖误差、能被排行榜接受"的那种，得走外部 SendInput 真键盘路线，
+  而那条路在本机被证明不可靠（窗口焦点被豆包客户端抢走、内存扫不到）。
+- F9 切换只在游玩中有效；返回菜单再进曲会按 AUTO_ON 重新自动开。
